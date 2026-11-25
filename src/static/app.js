@@ -8,6 +8,10 @@ document.addEventListener("DOMContentLoaded", () => {
   async function fetchActivities() {
     try {
       const response = await fetch("/activities", { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error(`Failed to load activities (${response.status})`);
+      }
+
       const activities = await response.json();
 
       // Clear loading message
@@ -100,9 +104,11 @@ document.addEventListener("DOMContentLoaded", () => {
         option.textContent = name;
         activitySelect.appendChild(option);
       });
+      return true;
     } catch (error) {
       activitiesList.innerHTML = "<p>Failed to load activities. Please try again later.</p>";
       console.error("Error fetching activities:", error);
+      return false;
     }
   }
 
@@ -124,10 +130,12 @@ document.addEventListener("DOMContentLoaded", () => {
       const result = await response.json();
 
       if (response.ok) {
-        messageDiv.textContent = result.message;
-        messageDiv.className = "success";
+        const activitiesRefreshed = await fetchActivities();
         signupForm.reset();
-        await fetchActivities();
+        messageDiv.textContent = activitiesRefreshed
+          ? result.message
+          : `${result.message}, but the activity list could not be refreshed.`;
+        messageDiv.className = activitiesRefreshed ? "success" : "error";
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
